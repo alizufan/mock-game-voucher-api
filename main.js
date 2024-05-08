@@ -60,7 +60,7 @@ const FilterLikeFn = (source, input) => {
     const s = source.trim().toLowerCase()
     const i = input.trim().toLowerCase()
     if (i.length <= 0) return true
-    return s.search(i)
+    return s.includes(i)
 }
 
 // init
