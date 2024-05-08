@@ -13,4 +13,4 @@ best practice
 `docker compose up -d --build`
 
 ## Remove Deploy
-`docker compose up -d --build`
+`docker compose down`
