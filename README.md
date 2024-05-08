@@ -3,14 +3,14 @@ API:
  - /api/v1/bill-payment/game-voucher/get-product-list
  - /api/v1/bill-payment/game-voucher/get-game-list
 
-# Run Code
+## Run Code
 `npm run start`
 
-# Run Via Docker
+## Run Via Docker
 best practice
 
-## Deploy
+### Deploy
 `docker compose up -d --build`
 
-## Remove Deploy
+### Remove Deploy
 `docker compose down`
