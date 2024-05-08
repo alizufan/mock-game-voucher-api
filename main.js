@@ -11,7 +11,7 @@ const product = data
         return {
             productId: v.productId,
             productName: v.productName,
-            gameCode: v.gameCode,
+            productCode: v.productCode,
             gameName: v.biller,
             productLogoUrl: 'https://placehold.co/500x500.png',
             billAmount: v.sellPrice.toFixed(2),
@@ -28,7 +28,7 @@ const product = data
 let productUnique = {};
 const operator = data
     .filter(v => {
-        const code = v.gameCode
+        const code = v.productCode
         if (!productUnique[code]) {
             productUnique[code] = true;
             return true;
@@ -37,7 +37,7 @@ const operator = data
     })
     .map(v => ({
         aggCode: v.aggregatorCode,
-        gameCode: v.gameCode,
+        productCode: v.productCode,
         gameName: v.biller,
         imageUrl: 'https://placehold.co/500x500.png'
     }))
@@ -50,21 +50,30 @@ const operator = data
 
 // filter func
 const FilterEqualFn = (source, input) => {
-    if (input.length <= 0) return true
-    return source === input
+    const s = source
+    const i = input.trim()
+    if (i.length <= 0) return true
+    return s === i
+}
+
+const FilterLikeFn = (source, input) => {
+    const s = source.trim().toLowerCase()
+    const i = input.trim().toLowerCase()
+    if (i.length <= 0) return true
+    return s.search(i)
 }
 
 // init
 const app = express()
 
-// middleware
+// middlewares
 app.use(bodyParser.json())
 app.use(cors())
 app.use(morgan(':method :url :status :res[content-length] - :response-time ms'))
 
-// endpoint
+// endpoints
 app.post('/api/v1/bill-payment/game-voucher/get-product-list', (req, res) => {
-    let { page = 1, perPage = 10, gameCode = '' } = req.body
+    let { page = 1, perPage = 10, productCode = '', productId = '', productName = '' } = req.body
 
     page = page < 1 ? 1 : page
     perPage = perPage < 10 ? 10 : perPage
@@ -72,7 +81,10 @@ app.post('/api/v1/bill-payment/game-voucher/get-product-list', (req, res) => {
     const start = (perPage * page) - perPage
     const end = start + perPage
 
-    const records = product.filter(v => FilterEqualFn(v.gameCode, gameCode))
+    const records = product
+        .filter(v => FilterEqualFn(v.productCode, productCode))
+        .filter(v => FilterEqualFn(v.productId, productId))
+        .filter(v => FilterLikeFn(v.productName, productName))
     const total = records.length
     const pages = Math.ceil(total / perPage)
 
@@ -91,7 +103,7 @@ app.post('/api/v1/bill-payment/game-voucher/get-product-list', (req, res) => {
 })
 
 app.post('/api/v1/bill-payment/game-voucher/get-game-list', (req, res) => {
-    let { page = 1, perPage = 10, gameCode = '' } = req.body
+    let { page = 1, perPage = 10, productCode = '' } = req.body
 
     page = page < 1 ? 1 : page
     perPage = perPage < 10 ? 10 : perPage
@@ -99,7 +111,7 @@ app.post('/api/v1/bill-payment/game-voucher/get-game-list', (req, res) => {
     const start = (perPage * page) - perPage
     const end = start + perPage
 
-    const records = operator.filter(v => FilterEqualFn(v.gameCode, gameCode))
+    const records = operator.filter(v => FilterEqualFn(v.productCode, productCode))
     const total = records.length
     const pages = Math.ceil(total / perPage)
 
