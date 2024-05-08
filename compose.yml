@@ -1,0 +1,13 @@
+version: '3.9'
+
+services:
+  gv-mock-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: gv-mock-api
+    container_name: gv-mock-api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    command: node main.js
