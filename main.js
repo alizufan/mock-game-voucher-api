@@ -1,10 +1,37 @@
-const express = require('express')
+const fs = require('fs');
 const cors = require('cors')
-const bodyParser = require('body-parser')
 const morgan = require('morgan')
+const express = require('express')
+const bodyParser = require('body-parser')
 
 const port = 3000
-const data = require('./data/products.json')
+const data = require('./data/products.json');
+
+// t_bill_product sql generators
+const billProductSQL = data.map(v => {
+    return "INSERT INTO `t_bill_product` (`transaction_type_code`, `secondary_category_code`, `aggregator`, `biller`, `mobile_prefix_pattern`, `product_id`, `product_logo_url`, `product_name`, `admin_fee`, `commission_fee`, `channel_fee`, `service_fee`, `is_point_enabled`, `is_valid`, `created_by`, `created_time`, `updated_by`, `updated_time` ) " +
+    "VALUES ( 'Prepaid', '0402000000', '"+v.aggregator+"', '"+v.biller+"', '-', '"+v.productId+"', 'https://placehold.co/500x500.png', '"+v.productName+"', '"+v.adminFee+"', '"+v.commisionFee+"', '0', '0', 'N', 'Y', 'system', CURRENT_DATE(), 'system', CURRENT_DATE() );"
+})
+
+const filenameProduct = "insert record - bill product - game voucher.sql"
+fs.writeFile(`./data/${filenameProduct}`, billProductSQL.join("\n"), err => {
+    if (err) throw err;
+    console.log(`Write and Replace File '${filenameProduct}' SQL!`);
+})
+
+// t_bill_product_detail sql generators
+const billProductDetailSQL = data.map(v => {
+    return "INSERT INTO `t_bill_product_detail` (`bill_product_id`, `type`, `value`) VALUES ('"+v.productId+"', 'GAME_VOUCHER_AGGREGATOR_CODE', '"+v.aggregatorCode+"');\n"+
+    "INSERT INTO `t_bill_product_detail` (`bill_product_id`, `type`, `value`) VALUES ('"+v.productId+"', 'GAME_VOUCHER_DEFAULT_ADMIN_FEE', '"+v.adminFee.toFixed(2)+"');\n"+
+    "INSERT INTO `t_bill_product_detail` (`bill_product_id`, `type`, `value`) VALUES ('"+v.productId+"', 'GAME_VOUCHER_PRODUCT_CODE', '"+v.productCode+"');\n"+
+    "INSERT INTO `t_bill_product_detail` (`bill_product_id`, `type`, `value`) VALUES ('"+v.productId+"', 'GAME_VOUCHER_SELL_PRICE', '"+v.sellPrice.toFixed(2)+"');"
+})
+
+const filenameProductDetail = "insert record - bill product detail - game voucher.sql"
+fs.writeFile(`./data/${filenameProductDetail}`, billProductDetailSQL.join("\n\n"), err => {
+    if (err) throw err;
+    console.log(`Write and Replace File '${filenameProductDetail}' SQL!`);
+})
 
 const product = data
     .map(v => {
@@ -36,7 +63,7 @@ const operator = data
         return false;
     })
     .map(v => ({
-        aggCode: v.aggregatorCode,
+        aggregatorCode: v.aggregatorCode,
         productCode: v.productCode,
         gameName: v.biller,
         imageUrl: 'https://placehold.co/500x500.png'
