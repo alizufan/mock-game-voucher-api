@@ -77,7 +77,13 @@ const products = data
             commissionFee: v.commisionFee,
             channelFee: 0,
             sortNo: 10,
-            description: ''
+            description: '',
+            additional: {
+                adminFee: {
+                    isFree: v.adminFee == 0,
+                    defaultAdminFee: 1500
+                }
+            }
         }
     })
 
