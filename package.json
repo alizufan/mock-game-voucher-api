@@ -4,7 +4,7 @@
   "description": "",
   "main": "main.js",
   "scripts": {
-    "start": "node main.js"
+    "gas": "node main.js"
   },
   "keywords": [],
   "author": "alizufan",

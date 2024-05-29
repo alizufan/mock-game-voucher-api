@@ -6,6 +6,7 @@ const bodyParser = require('body-parser')
 
 const port = 3000
 const data = require('./data/products.json');
+const cats = require('./data/categories.json');
 
 const joinSpace = (...str) => {
     return str.join(" ")
@@ -15,7 +16,7 @@ const joinSpace = (...str) => {
 const billProductSQL = data.map(v => {
     return joinSpace(
         "INSERT INTO `t_bill_product` (`transaction_type_code`, `secondary_category_code`, `aggregator`, `biller`, `mobile_prefix_pattern`, `product_id`, `product_logo_url`, `product_name`, `admin_fee`, `commission_fee`, `channel_fee`, `service_fee`, `is_point_enabled`, `is_valid`, `created_by`, `created_time`, `updated_by`, `updated_time` )",
-        `VALUES ( 'Prepaid', '0402000000', '${v.aggregator}', '${v.biller}', '-', '${v.productId}', 'https://placehold.co/500x500.png', '${v.productName}', '${v.adminFee}', '${v.commisionFee}', '0', '0', 'N', 'Y', 'system', CURRENT_DATE(), 'system', CURRENT_DATE() );`
+        `VALUES ( 'Prepaid', '0402000000', '${v.aggregator}', '${v.biller}', NULL, '${v.productId}', 'https://placehold.co/500x500.png', '${v.productName}', '${v.adminFee}', '${v.commisionFee}', '0', '0', 'N', 'Y', 'system', CURRENT_DATE(), 'system', CURRENT_DATE());`
     )
 })
 
@@ -41,7 +42,7 @@ const billProductDetailSQL = data.map(v => {
         ),
         joinSpace(
             "INSERT INTO `t_bill_product_detail` (`bill_product_id`, `type`, `value`)",
-            `VALUES ('${v.productId}', 'GAME_VOUCHER_SELL_PRICE', '${v.sellPrice.toFixed(2)}');`
+            `VALUES ('${v.productId}', 'GAME_VOUCHER_SELL_PRICE', '${v.sellPrice.toFixed(2)}');\n`
         ),
         joinSpace(
             "INSERT INTO `t_bill_product_detail` (`bill_product_id`, `type`, `value`)",
@@ -51,7 +52,7 @@ const billProductDetailSQL = data.map(v => {
 })
 
 const filenameProductDetail = "insert-bill-product-detail-game-voucher.sql"
-fs.writeFile(`./data/${filenameProductDetail}`, billProductDetailSQL.join("\n\n"), err => {
+fs.writeFile(`./data/${filenameProductDetail}`, billProductDetailSQL.join("\n"), err => {
     if (err) {
         console.error(err);
         return;
@@ -59,7 +60,7 @@ fs.writeFile(`./data/${filenameProductDetail}`, billProductDetailSQL.join("\n\n"
     console.log(`> Replace and Write File '${filenameProductDetail}'!\n`);
 })
 
-const product = data
+const products = data
     .map(v => {
         return {
             productId: v.productId,
@@ -69,19 +70,19 @@ const product = data
             aggregatorCode: v.aggregatorCode,
             biller: v.biller,
             productLogoUrl: 'https://placehold.co/500x500.png',
-            billAmount: v.sellPrice.toFixed(2),
-            retailPriceAmount: v.retailPrice.toFixed(2),
-            adminFee: v.adminFee.toFixed(2),
-            serviceFee: '0.00',
-            commissionFee: v.commisionFee.toFixed(2),
-            channelFee: '0.00',
+            billAmount: v.sellPrice,
+            retailPriceAmount: v.retailPrice,
+            adminFee: v.adminFee,
+            serviceFee: 0,
+            commissionFee: v.commisionFee,
+            channelFee: 0,
             sortNo: 10,
             description: ''
         }
     })
 
 let productUnique = {};
-const operator = data
+const billers = data
     .filter(v => {
         const code = v.productCode
         if (!productUnique[code]) {
@@ -94,7 +95,8 @@ const operator = data
         aggregatorCode: v.aggregatorCode,
         productCode: v.productCode,
         biller: v.biller,
-        imageUrl: 'https://placehold.co/500x500.png'
+        imageUrl: 'https://placehold.co/500x500.png',
+        forms: null
     }))
     .sort((a, b) => {
         const [ad, bd] = [a.biller.toLowerCase(), b.biller.toLowerCase()]
@@ -126,8 +128,31 @@ app.use(bodyParser.json())
 app.use(cors())
 app.use(morgan(':method | :url | :status | :res[content-length] - :response-time ms'))
 
+// app.get('/', (req, res) => {
+//     let records = products;
+//     for (let i = 0; i < cats.length; i++) {
+//         const cat = cats[i];
+//         const idx = products.findIndex(v => v.productCode == cat.code);
+//         if (idx != -1) {
+//             records[idx] = {...records[idx], forms: cat.forms}
+//         }
+//     }
+//     let unique = {};
+//     res.json(
+//         cats
+//             .flatMap(v => v.forms.map(i => i.type))
+//             .filter(v => {
+//                 if (!unique[v]) {
+//                     unique[v] = true;
+//                     return true;
+//                 }
+//                 return false;
+//             })
+//     )
+// })
+
 // endpoints
-app.post('/api/v1/bill-payment/game-voucher/get-product-list', (req, res) => {
+app.post('/api/v1/bill-payment/game-voucher/query-product-list', (req, res) => {
     let { page = 1, perPage = 10, productCode = '', productId = '', productName = '' } = req.body
 
     page = page < 1 ? 1 : page
@@ -136,7 +161,7 @@ app.post('/api/v1/bill-payment/game-voucher/get-product-list', (req, res) => {
     const start = (perPage * page) - perPage
     const end = start + perPage
 
-    const records = product
+    const records = products
         .filter(v => FilterEqualFn(v.productCode, productCode))
         .filter(v => FilterEqualFn(v.productId, productId))
         .filter(v => FilterLikeFn(v.productName, productName))
@@ -157,7 +182,7 @@ app.post('/api/v1/bill-payment/game-voucher/get-product-list', (req, res) => {
     })
 })
 
-app.post('/api/v1/bill-payment/game-voucher/get-game-list', (req, res) => {
+app.post('/api/v1/bill-payment/game-voucher/query-biller-list', (req, res) => {
     let { page = 1, perPage = 10, productCode = '' } = req.body
 
     page = page < 1 ? 1 : page
@@ -166,7 +191,8 @@ app.post('/api/v1/bill-payment/game-voucher/get-game-list', (req, res) => {
     const start = (perPage * page) - perPage
     const end = start + perPage
 
-    const records = operator.filter(v => FilterEqualFn(v.productCode, productCode))
+    const records = billers
+        .filter(v => FilterEqualFn(v.productCode, productCode))
     const total = records.length
     const pages = Math.ceil(total / perPage)
 
